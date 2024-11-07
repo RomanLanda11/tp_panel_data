@@ -12,6 +12,7 @@ micosis_a = micosis_l %>%
   spread(key = "mes", value = "long") %>% 
   rename( 'mes00'='0','mes01'='1' , 'mes02'='2'  , 
           'mes03' = '3', 'mes06'= '6', 'mes12'= '12' ) 
+micosis_l$mes_factor = factor(micosis_l$mes)
 
 ### Perfiles individuales
 ggplot(micosis_l, aes(x = mes, y = long, group = id, color = tto)) +
@@ -59,7 +60,7 @@ ggplot(micosis_l, aes(x = mes_factor, y = long)) +
   theme(plot.title = element_text(size = 17))
 
 #### BOXPLOTS ##########
-micosis_l$mes_factor = factor(micosis_l$mes)
+
 
 ggplot(micosis_l, aes(x = mes_factor, y = long, fill = tto)) +
   geom_boxplot() +
@@ -79,8 +80,11 @@ ggplot(micosis_l, aes(x = mes_factor, y = long, fill = tto)) +
 #------------------------------------------#  
 
 long_medio <- lm(long ~ tto+club+sexo+mes, data = micosis_l)
+micosis_l <- mutate(micosis_l,
+                    residuos = long_medio$residuals,
+                    sd_residuos = long_medio$residuals/sd(long_medio$residuals))
 
-micosis_l <- mutate(micosis_l, residuos = long_medio$residuals)
+
 
 vgm <- variogram(micosis_l$id, micosis_l$mes, micosis_l$residuos)
 vgm1 = data.frame(vgm$svar)
