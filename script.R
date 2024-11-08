@@ -98,3 +98,4 @@ ggplot(data = vgm1, aes(x = vt, y = vv)) +
   scale_y_continuous("Variograma muestral", limits = c(0, 40), breaks = seq(0, 40, 5)) +
   labs(title = "Variograma muestral") +
   theme(plot.title = element_text(size = 17))
+eh señor eh
