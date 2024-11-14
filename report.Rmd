@@ -1,0 +1,181 @@
+---
+title: "report"
+author: "Román Landa"
+date: "2024-11-08"
+output: html_document
+---
+```{r}
+library(readxl)
+library(tidyverse)
+library(GGally)
+library(joineR)
+
+# Para ajustar MLG y MLM
+library(nlme)
+```
+
+# Datos
+```{r}
+micosis_l <- read_excel("data/micosis.xlsx")
+
+micosis_a = micosis_l %>%
+  spread(key = "mes", value = "long") %>% 
+  rename( 'mes00'='0','mes01'='1' , 'mes02'='2'  , 
+          'mes03' = '3', 'mes06'= '6', 'mes12'= '12' ) 
+micosis_l$mes_factor = factor(micosis_l$mes)
+micosis_l$id = factor(micosis_l$id)
+```
+
+# Análisis descriptivo
+
+## Gráfico de perfiles individuales
+
+```{r}
+ggplot(micosis_l, aes(x = mes, y = long, group = id, color = tto)) +
+  geom_line(show.legend = FALSE) +
+  geom_point(show.legend = FALSE) +
+  facet_wrap(~ tto) +
+  #scale_x_continuous("Edad (a?os)", breaks = seq(8, 14, 2)) +
+  #scale_y_continuous("Distancia") +
+  #coord_cartesian(ylim = c(12, 32)) +
+  theme_bw() +
+  scale_color_brewer(palette = 'Set1') +
+  labs(title = "Evoluci?n de?s del tiempo seg?n tto") +
+  theme(plot.title = element_text(size = 17),
+        axis.title = element_text(size = 13),
+        strip.text = element_text(size = 15))
+
+```
+
+Vemos variabilidad entre e intra, las variancias aumentan a medida que transcurre el tiempo.
+
+## Gráfico de perfiles promedio
+
+```{r}
+ggplot(micosis_l, aes(x = mes, y = long, color = tto)) +
+  stat_summary(fun = mean, geom = 'line', size = 1) + 
+  stat_summary(fun = mean, geom = 'point', size = 2) +
+  #scale_color_brewer(palette = 'Set1') +
+  #coord_cartesian(ylim = c(12, 32)) +
+  theme_light() +
+  #scale_x_continuous("Edad (a?os)", breaks = seq(8, 14, 2)) +
+  #scale_y_continuous("Distancia") +
+  labs(title = "Evoluci?n de la distancia maxilar media a traves del tiempo seg?n sexo",
+       color = "Sexo") +
+  theme(plot.title = element_text(size = 17),
+        axis.title = element_text(size = 13),
+        strip.text = element_text(size = 15))
+
+```
+
+Podemos pensar en ordenadas similares y pendientes distintas. Ambos tratamientos siguen un comportamiento lineal creciente.
+
+
+## Boxplots
+
+```{r}
+ggplot(micosis_l, aes(x = mes_factor, y = long, fill = tto)) +
+  geom_boxplot() +
+  theme_light() +
+  #scale_x_discrete("") +
+  #scale_y_continuous("Distancia", limits = c(16,32), breaks = seq(16, 32, 2)) +
+  scale_fill_brewer(palette = 'Set1') +
+  labs(title = "DistribuciÃ³n de la distancia maxilar segÃºn edad y sexo",
+       fill = "Sexo") +
+  theme(plot.title = element_text(size = 15),
+        axis.title = element_text(size = 12),
+        legend.position = 'bottom')
+
+```
+Vemos que las variancias aumentan con el tiempo. Las variancias son homogéneas entre tratamientos.
+
+## Variograma
+
+
+
+```{r}
+micosis_l_est = micosis_l %>% 
+  group_by(mes, tto) %>% 
+  mutate(long_est = scale(long)) 
+
+# micosis_a_est <- micosis_l_est %>%
+#   select(-long) %>% 
+#   spread(key = "mes", value = "long_est")
+# names(micosis_a_est)=c("id","club", "sexo","tto", "mes00","mes01","mes02","mes03","mes06","mes12")
+# head(micosis_a_est)
+
+micosis_l_est$mes_factor = factor(micosis_l_est$mes, 
+                                  levels = c("0","1","2","3","6","12"))
+micosis_l_est$medicion <- case_when(micosis_l_est$mes == 0 ~ 1,
+                                    micosis_l_est$mes == 1 ~ 2,
+                                    micosis_l_est$mes == 2 ~ 3,
+                                    micosis_l_est$mes == 3 ~ 4,
+                                    micosis_l_est$mes == 6 ~ 5,
+                                    micosis_l_est$mes == 12 ~ 6)
+micosis_l$medicion <- case_when(micosis_l$mes == 0 ~ 1,
+                                    micosis_l$mes == 1 ~ 2,
+                                    micosis_l$mes == 2 ~ 3,
+                                    micosis_l$mes == 3 ~ 4,
+                                    micosis_l$mes == 6 ~ 5,
+                                    micosis_l$mes == 12 ~ 6)
+
+#TODO: pasar arriba
+
+vgm <- variogram(micosis_l_est$id, micosis_l_est$mes, micosis_l_est$long_est)
+vgm1 = data.frame(vgm$svar)
+
+
+ggplot(data = vgm1, aes(x = vt, y = vv)) +
+  geom_point(color = 'grey50', na.rm = TRUE) +
+  stat_summary(fun = mean, geom = 'line', color = 'orangered', size = 1, na.rm = TRUE) + 
+  geom_hline(yintercept = vgm$sigma2) +
+  theme_light() +
+  scale_x_continuous("Rezago", breaks = seq(0, 12, 1)) +
+  scale_y_continuous("Variograma muestral") +
+  coord_cartesian(ylim = c(0, 3)) + 
+  labs(title = "Variograma muestral") +
+  theme(plot.title = element_text(size = 15))
+
+
+```
+Vemos que la fuente de variabilidad dominante es la intra (error de medición y correlación serial)
+
+
+```{r}
+#Estandarizo - total
+micosis_a_est <- scale(micosis_a[,5:10]) 
+#micosis_a_est <- data.frame(micosis_a_est)
+#summary(micosis_a_est)
+
+ggpairs(data=micosis_a_est, title="Grafico de Draftman")
+```
+
+# Modelado
+
+Para la parte media:
+
+$Y_{ij}=\beta_0 + \beta_{01}.Trat_i + \beta_{02}.Sexo_i + \beta_{03}.Club_i + b_{0i} + (\beta_1 + \beta_{11}.Trat_i + \beta_{12}.Sexo_i + \beta_{13}.Club_i +\beta_{14}.Club_i.Sexo_i +\beta_{15}.Club_i.Trat_i +\beta_{16}.Sexo_i.Trat_i ).t_{ij}+e_{ij}$
+
+Para la estructura de correlación:
+
+SE AR(1) Exponencial Markov Gaussiana
+
+```{r}
+m1.AR <- lme(long ~ 1 + tto + sexo + club + mes + tto:mes + sexo:mes + club:mes+ sexo:club:mes + sexo:tto:mes + tto:club:mes,
+             random = ~ mes | id,
+             weights = varIdent(form = ~ 1 | mes),
+             method = "REML", data = micosis_l)
+
+summary(m1.AR)
+m1.se <- update(m1.AR, correlation = corSymm(form = ~ mes | id))
+m1.exp <- update(m1.AR, correlation = corExp(form = ~ mes | id))
+m1.gaus <- update(m1.AR, correlation = corGaus(form = ~ mes | id))
+m1.markov <- update(m1.AR, correlation = corCAR1(form = ~ mes | id))
+anova(m1.AR, m1.exp, m1.markov, m1.gaus)
+```
+```{r}
+#TODO: consultas: variograma, cual quda? 
+#TODO: interaccione en ordenada? sexo club y la interacción
+#TODO:paso a paso para seleccionar modelo
+```
+

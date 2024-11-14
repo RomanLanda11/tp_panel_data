@@ -83,6 +83,9 @@ long_medio <- lm(long ~ tto+club+sexo+mes, data = micosis_l)
 micosis_l <- mutate(micosis_l,
                     residuos = long_medio$residuals,
                     sd_residuos = long_medio$residuals/sd(long_medio$residuals))
+micosis_l_est = micosis_l %>% 
+  group_by(sem, sexo) %>% 
+  mutate(h.est = scale(h))
 
 
 
@@ -98,4 +101,7 @@ ggplot(data = vgm1, aes(x = vt, y = vv)) +
   scale_y_continuous("Variograma muestral", limits = c(0, 40), breaks = seq(0, 40, 5)) +
   labs(title = "Variograma muestral") +
   theme(plot.title = element_text(size = 17))
-eh señor eh
+
+hips.l.est = hips.l %>% 
+  group_by(sem, sexo) %>% 
+  mutate(h.est = scale(h))
