@@ -102,6 +102,6 @@ ggplot(data = vgm1, aes(x = vt, y = vv)) +
   labs(title = "Variograma muestral") +
   theme(plot.title = element_text(size = 17))
 
-# hips.l.est = hips.l %>% 
-#   group_by(sem, sexo) %>% 
-#   mutate(h.est = scale(h))
+hips.l.est = hips.l %>%
+  group_by(sem, sexo) %>%
+  mutate(h.est = scale(h))
