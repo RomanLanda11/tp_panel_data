@@ -111,8 +111,6 @@ Vemos que las variancias aumentan con el tiempo. Las variancias son homogéneas 
 
 ## Variograma
 
-
-
 ```{r}
 micosis_l_est = micosis_l %>% 
   group_by(mes, tto) %>% 
@@ -128,9 +126,9 @@ if (variograma) {
 }
 vgm0 <- readRDS("utils/vgm0.rds")
 
-ggplot(data = vgm1, aes(x = vt, y = vv)) +
+ggplot(data = vgm0, aes(x = vt, y = vv)) +
   geom_point(color = 'grey50', na.rm = TRUE) +
-  stat_summary(fun = mean, geom = 'line', color = 'orangered', size = 1, na.rm = TRUE) + 
+  stat_summary(fun = mean, geom = 'line', color = 'purple3', size = 1, na.rm = TRUE) + 
   geom_hline(yintercept = vgm$sigma2) +
   theme_light() +
   scale_x_continuous("Rezago", breaks = seq(0, 12, 1)) +
@@ -186,10 +184,7 @@ anova( m1.pend.al,m1.markov,m1.exp, m1.gaus)
 Comparamos todos los modelos con ordenada aleatoria y estructura de corr con BIC y AIC
 Verificamos los residuos del modelo con pendiente aleatoria y del mejor de la comparación
 
-```{r}
-#TODO: interaccione en ordenada? sexo club y la interacción
-#TODO:paso a paso para seleccionar modelo
-```
+
 
 ## Análisis de residuos 
 ```{r}
@@ -215,7 +210,7 @@ if (variograma) {
   resid.2 <- data.frame(resid.2, residChol = resid(m1.pend.al, type = 'n'))
   vgm2 <- variogram(resid.2$id, resid.2$mes, resid.2$residChol)
   vgm2 <- as.data.frame(vgm2$svar)
-  saveRDS(vgm2.2, "utils/vgm2.rds")
+  saveRDS(vgm2, "utils/vgm2.rds")
 }
 vgm1 <- readRDS("utils/vgm1.rds")
 vgm2 <- readRDS("utils/vgm2.rds")
@@ -330,9 +325,6 @@ rqq1+rqq2
 ```
 
 ```{r}
-#resid.11 = mutate(resid.11, id = rep(1:200, each=6))
-#resid.22 = mutate(resid.22, id = rep(1:200, each=6))
-
 marg1 <- ggplot(data = resid.11) +
   geom_point(aes(x = id, y = residMargEst), color = 'steelblue') +
   geom_hline(yintercept = 0) +
@@ -440,7 +432,7 @@ ggplot() +
   theme_light() +
   #scale_x_continuous("Mes", breaks = seq(0, 16, 2)) +
   #scale_y_continuous("Puntaje de discapacidad", 
-   #                  limits = c(0, 80), breaks = seq(0, 80, 10)) +
+  #                   limits = c(0, 80), breaks = seq(0, 80, 10)) +
   labs(title = "Evolución del puntaje de discapacidad a través del tiempo según trt") +
   theme(plot.title = element_text(size = 17))
 ```
@@ -451,54 +443,32 @@ Modelo en etapas:
 
 Individual: $Y_{ij}= e_{ij}$
 
-Poblacional: $\beta_{0i}=B_1 + B_2*D_{1i} + B_3*D_{2i} + b_{0i}$
-$\beta_{1i}=B_4 + B_5*D_{1i} + B_6*D_{2i}$
-$\beta_{2i}=B_7 + B_8*D_{1i} + B_9*D_{2i}$
+Poblacional: $\beta_{0i}=B_1 + B_2*D_{1i} + B_3*D_{2i} + b_{0i} \\ \beta_{1i}=B_4 + B_5*D_{1i} + B_6*D_{2i} \\ \beta_{2i}=B_7 + B_8*D_{1i} + B_9*D_{2i}$
+
 Reestimamos el modelo usando ML
+
 ```{r}
-m3 = lme(puntaje ~ trt*semana + trt*semana2, 
-         random = ~ 1|id, 
-         correlation = corCAR1(form= ~ semana|id), 
-         method = 'ML', 
-         data = distonia)
-summary(m3)
+m1.exp2 = update(m1.exp, 
+                 method = 'ML')
+summary(m1.exp2)
 ```
 
-#### D.i
-$H_0)$ La aleatorización se hizo de manera adecuada (ordenadas iguales para todos los grupos)
-$H_0)\beta_2 = \beta_3 = 0$ 
+#### Preguuuuuntale
+
+- ¿La longitud media de la parte no afectada por el hongo antes de comenzar el tratamiento está asociado con el sexo del paciente y el hecho que concurra al gimnasio, club o pileta?
+
+- ¿La tasa de cambio típica de la longitud media de uña no afectada difiere entre ambos tratamientos?
+
+- ¿La tasa de cambio de la longitud media de uña no afectada depende del sexo del paciente o del hecho que concurra al gimnasio, club o pileta?
+
+- Obtener estimaciones de la tasa de cambio promedio para cada grupo de pacientes.
+
+- Con estos resultados ¿qué recomendaciones darías para el tratamiento de pacientes con micosis avanzada en la uña? 
+
+$H_0) \beta_{01}=\beta_{02}=\beta_{03}=0$ 
 
 ```{r}
-m3.d1 = update(m3, puntaje ~ 1 + semana + semana2 + trt:semana + trt:semana2)
-summary(m3.d1)
-# summary(m3)
+betas <- m1.e
 anova(m3.d1, m3)
 ```
-No rechazo $H_0$ por lo que la aleatorización es adecuada
 
-#### D.ii
- H0) tasa de cambio constante
- $\beta_6 = \beta_9 = 0$
- 
-```{r}
-m3.d2 = update(m3, puntaje ~ trt + trt:semana + semana2)
-summary(m3.d2)
-
-anova(m3, m3.d2)
-
-```
-Rechazo $H_0$ lo que significa que la tasa de cambio es constante a traves del tiempo.
-
-#### D.iii
- H0) Patrón de cambio igual entre grupos (paralelismo)
- $H_0)\beta_5 = \beta_6 = \beta_6 = \beta_9 = 0$
- 
-```{r}
-m3.d3 = update(m3, puntaje ~ trt + semana + semana2)
-summary(m3.d3)
-
-anova(m3, m3.d3)
-
-```
-
-Rechazo $H_0)$ por lo que la tasa de cambio no es la misma para ambos grupos.
