@@ -29,6 +29,10 @@ micosis_l$id = factor(micosis_l$id)
 ```
 
 ```{r}
+micosis_l_est = micosis_l %>% 
+  group_by(mes, tto) %>% 
+  mutate(long_est = scale(long)) 
+
 micosis_l_est$mes_factor = factor(micosis_l_est$mes, 
                                   levels = c("0","1","2","3","6","12"))
 micosis_l_est$medicion <- case_when(micosis_l_est$mes == 0 ~ 1,
@@ -112,10 +116,6 @@ Vemos que las variancias aumentan con el tiempo. Las variancias son homogéneas 
 ## Variograma
 
 ```{r}
-micosis_l_est = micosis_l %>% 
-  group_by(mes, tto) %>% 
-  mutate(long_est = scale(long)) 
-
 variograma <- FALSE
 vgm0 <- NULL
 if (variograma) {
@@ -129,7 +129,7 @@ vgm0 <- readRDS("utils/vgm0.rds")
 ggplot(data = vgm0, aes(x = vt, y = vv)) +
   geom_point(color = 'grey50', na.rm = TRUE) +
   stat_summary(fun = mean, geom = 'line', color = 'purple3', size = 1, na.rm = TRUE) + 
-  geom_hline(yintercept = vgm$sigma2) +
+  geom_hline(yintercept = vgm0$sigma2) +
   theme_light() +
   scale_x_continuous("Rezago", breaks = seq(0, 12, 1)) +
   scale_y_continuous("Variograma muestral") +
@@ -141,12 +141,12 @@ Vemos que la fuente de variabilidad dominante es la intra (error de medición y 
 
 
 ```{r}
-#Estandarizo - total
-micosis_a_est <- scale(micosis_a[,5:10]) 
-#micosis_a_est <- data.frame(micosis_a_est)
-#summary(micosis_a_est)
-
-ggpairs(data=micosis_a_est, title="Grafico de Draftman")
+# #Estandarizo - total
+# micosis_a_est <- scale(micosis_a[,5:10]) 
+# #micosis_a_est <- data.frame(micosis_a_est)
+# #summary(micosis_a_est)
+# 
+# ggpairs(data=micosis_a_est, title="Grafico de Draftman")
 ```
 
 # Modelado
@@ -188,26 +188,25 @@ Verificamos los residuos del modelo con pendiente aleatoria y del mejor de la co
 
 ## Análisis de residuos 
 ```{r}
-variograma <- FALSE
+variograma <- F
 vgm1.1 <- NULL
 vgm2.2 <- NULL
 
-if (variograma) {
-  # Variograma para m1.exp
   resid.1 <- data.frame(micosis_l, 
                         pred = fitted(m1.exp), 
                         resid = resid(m1.exp, type = "p"))
   resid.1 <- data.frame(resid.1, residChol = resid(m1.exp, type = 'n'))
-  vgm1 <- variogram(resid.1$id, resid.1$mes, resid.1$residChol)
-  vgm1 <- as.data.frame(vgm1$svar)
-  saveRDS(vgm1, "utils/vgm1.rds")
-
-
-  # Variograma para m1.pend.al
   resid.2 <- data.frame(micosis_l, 
                         pred = fitted(m1.pend.al), 
                         resid = resid(m1.pend.al, type = "p"))
   resid.2 <- data.frame(resid.2, residChol = resid(m1.pend.al, type = 'n'))
+if (variograma) {
+  # Variograma para m1.exp
+  vgm1 <- variogram(resid.1$id, resid.1$mes, resid.1$residChol)
+  vgm1 <- as.data.frame(vgm1$svar)
+  saveRDS(vgm1, "utils/vgm1.rds")
+
+  # Variograma para m1.pend.al
   vgm2 <- variogram(resid.2$id, resid.2$mes, resid.2$residChol)
   vgm2 <- as.data.frame(vgm2$svar)
   saveRDS(vgm2, "utils/vgm2.rds")
@@ -380,14 +379,14 @@ Mi2 = data.frame(id = micosis_a$id, Mi2)
 dist = 'chisq'
 gl = list(df = 1) # Numero de efectos aleatorios
 
-ef1 <- ggplot(data = Mi, aes(sample = Mi)) +
+ef1 <- ggplot(data = Mi1, aes(sample = Mi1)) +
   stat_qq_band(distribution = dist, dparams = gl, fill = 'grey80') +
   stat_qq_line(distribution = dist, dparams = gl) + 
   stat_qq_point(distribution = dist, dparams = gl, color = 'steelblue') +
   theme_light() +
   labs(x = 'Cuantiles te?ricos', y = 'Distancia de Mahalanobis',
        title = 'Gráfico probabilistico chi-cuadrado de la distancia de Mahalanobis')
-ef2 <- ggplot(data = Mi, aes(sample = Mi)) +
+ef2 <- ggplot(data = Mi2, aes(sample = Mi2)) +
   stat_qq_band(distribution = dist, dparams = 2, fill = 'grey80') +
   stat_qq_line(distribution = dist, dparams = 2) + 
   stat_qq_point(distribution = dist, dparams = 2, color = 'steelblue') +
@@ -468,7 +467,40 @@ summary(m1.exp2)
 $H_0) \beta_{01}=\beta_{02}=\beta_{03}=0$ 
 
 ```{r}
-betas <- m1.e
-anova(m3.d1, m3)
+betas <- m1.exp2$coefficients$fixed
+l1 <- matrix(numeric(36),ncol=length(betas))
+l1[1,2] <- 1
+l1[2,3] <- 1
+l1[3,5] <- 1
+anova(m1.exp2,L=l1)
+anova(m1.exp2,m1.exp2.1)
+m1.exp2.1 <- update(m1.exp2, fixed. = long ~ 1 + mes + tto:mes + sexo:mes + club:mes+ sexo:club:mes + sexo:tto:mes + tto:club:mes + tto:sexo:club:mes)
+```
+
+$H_0)\beta_{11}=\beta_{15}=\beta_{16}=\beta_{17}=0$
+```{r}
+l2 <- matrix(numeric(48),ncol=length(betas))
+l2[1,6] <- 1
+l2[2,10] <- 1
+l2[1,11] <- 1
+l2[1,12] <- 1
+m1.exp2.2 <- update(m1.exp2, fixed. = long ~ 1 + sexo + club + sexo:club + mes + sexo:mes + club:mes+ sexo:club:mes)
+anova(m1.exp2,L=l2)
+anova(m1.exp2,m1.exp2.2)
+```
+
+
+$H_0)\beta_{12}=\beta_{13}=\beta_{14}=\beta_{15}=\beta_{16}=\beta_{17}=0$
+```{r}
+l3 <- matrix(numeric(72),ncol=length(betas))
+l3[1,7] <- 1
+l3[2,8] <- 1
+l3[3,9] <- 1
+l3[4,10] <- 1
+l3[5,11] <- 1
+l3[6,12] <- 1
+m1.exp2.3 <- update(m1.exp2, fixed. = long ~ 1 + sexo + club + sexo:club + mes + tto:mes)
+anova(m1.exp2,m1.exp2.3)
+anova(m1.exp2,L=l3)
 ```
 
