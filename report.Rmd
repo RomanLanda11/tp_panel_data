@@ -9,12 +9,14 @@ library(readxl)
 library(tidyverse)
 library(GGally)
 library(joineR)
-
 # Para ajustar MLG y MLM
 library(nlme)
+library(patchwork)
+library(qqplotr)
 ```
 
 # Datos
+
 ```{r}
 micosis_l <- read_excel("data/micosis.xlsx")
 
@@ -24,6 +26,24 @@ micosis_a = micosis_l %>%
           'mes03' = '3', 'mes06'= '6', 'mes12'= '12' ) 
 micosis_l$mes_factor = factor(micosis_l$mes)
 micosis_l$id = factor(micosis_l$id)
+```
+
+```{r}
+micosis_l_est$mes_factor = factor(micosis_l_est$mes, 
+                                  levels = c("0","1","2","3","6","12"))
+micosis_l_est$medicion <- case_when(micosis_l_est$mes == 0 ~ 1,
+                                    micosis_l_est$mes == 1 ~ 2,
+                                    micosis_l_est$mes == 2 ~ 3,
+                                    micosis_l_est$mes == 3 ~ 4,
+                                    micosis_l_est$mes == 6 ~ 5,
+                                    micosis_l_est$mes == 12 ~ 6)
+micosis_l$medicion <- case_when(micosis_l$mes == 0 ~ 1,
+                                    micosis_l$mes == 1 ~ 2,
+                                    micosis_l$mes == 2 ~ 3,
+                                    micosis_l$mes == 3 ~ 4,
+                                    micosis_l$mes == 6 ~ 5,
+                                    micosis_l$mes == 12 ~ 6)
+
 ```
 
 # Análisis descriptivo
@@ -98,32 +118,15 @@ micosis_l_est = micosis_l %>%
   group_by(mes, tto) %>% 
   mutate(long_est = scale(long)) 
 
-# micosis_a_est <- micosis_l_est %>%
-#   select(-long) %>% 
-#   spread(key = "mes", value = "long_est")
-# names(micosis_a_est)=c("id","club", "sexo","tto", "mes00","mes01","mes02","mes03","mes06","mes12")
-# head(micosis_a_est)
-
-micosis_l_est$mes_factor = factor(micosis_l_est$mes, 
-                                  levels = c("0","1","2","3","6","12"))
-micosis_l_est$medicion <- case_when(micosis_l_est$mes == 0 ~ 1,
-                                    micosis_l_est$mes == 1 ~ 2,
-                                    micosis_l_est$mes == 2 ~ 3,
-                                    micosis_l_est$mes == 3 ~ 4,
-                                    micosis_l_est$mes == 6 ~ 5,
-                                    micosis_l_est$mes == 12 ~ 6)
-micosis_l$medicion <- case_when(micosis_l$mes == 0 ~ 1,
-                                    micosis_l$mes == 1 ~ 2,
-                                    micosis_l$mes == 2 ~ 3,
-                                    micosis_l$mes == 3 ~ 4,
-                                    micosis_l$mes == 6 ~ 5,
-                                    micosis_l$mes == 12 ~ 6)
-
-#TODO: pasar arriba
-
-vgm <- variogram(micosis_l_est$id, micosis_l_est$mes, micosis_l_est$long_est)
-vgm1 = data.frame(vgm$svar)
-
+variograma <- FALSE
+vgm0 <- NULL
+if (variograma) {
+  # Variograma 
+  vgm <- variogram(micosis_l_est$id, micosis_l_est$mes, micosis_l_est$long_est)
+  vgm0 = data.frame(vgm$svar)
+  saveRDS(vgm0, "utils/vgm0.rds")
+}
+vgm0 <- readRDS("utils/vgm0.rds")
 
 ggplot(data = vgm1, aes(x = vt, y = vv)) +
   geom_point(color = 'grey50', na.rm = TRUE) +
@@ -135,8 +138,6 @@ ggplot(data = vgm1, aes(x = vt, y = vv)) +
   coord_cartesian(ylim = c(0, 3)) + 
   labs(title = "Variograma muestral") +
   theme(plot.title = element_text(size = 15))
-
-
 ```
 Vemos que la fuente de variabilidad dominante es la intra (error de medición y correlación serial)
 
@@ -154,28 +155,350 @@ ggpairs(data=micosis_a_est, title="Grafico de Draftman")
 
 Para la parte media:
 
-$Y_{ij}=\beta_0 + \beta_{01}.Trat_i + \beta_{02}.Sexo_i + \beta_{03}.Club_i + b_{0i} + (\beta_1 + \beta_{11}.Trat_i + \beta_{12}.Sexo_i + \beta_{13}.Club_i +\beta_{14}.Club_i.Sexo_i +\beta_{15}.Club_i.Trat_i +\beta_{16}.Sexo_i.Trat_i ).t_{ij}+e_{ij}$
+$Y_{ij}=\beta_0 + \beta_{01}.Sexo_i + \beta_{02}.Club_i +\beta_{03}.Club_i.Sexo_i + b_{0i} + (\beta_1 + \beta_{11}.Trat_i + \beta_{12}.Sexo_i + \beta_{13}.Club_i +\beta_{14}.Club_i.Sexo_i +\beta_{15}.Club_i.Trat_i +\beta_{16}.Sexo_i.Trat_i  +\beta_{17}.Sexo_i.Trat_i.Cub_i + b_{1i}).t_{ij}+e_{ij}$
 
 Para la estructura de correlación:
 
+Pendiente aleatoria
 SE AR(1) Exponencial Markov Gaussiana
 
 ```{r}
-m1.AR <- lme(long ~ 1 + tto + sexo + club + mes + tto:mes + sexo:mes + club:mes+ sexo:club:mes + sexo:tto:mes + tto:club:mes,
+m1.pend.al <- lme(long ~ 1 + sexo + club + sexo:club + mes + tto:mes + sexo:mes + club:mes+ sexo:club:mes + sexo:tto:mes + tto:club:mes + tto:sexo:club:mes,
              random = ~ mes | id,
-             weights = varIdent(form = ~ 1 | mes),
-             method = "REML", data = micosis_l)
+             method = "REML", 
+             data = micosis_l)
 
-summary(m1.AR)
-m1.se <- update(m1.AR, correlation = corSymm(form = ~ mes | id))
-m1.exp <- update(m1.AR, correlation = corExp(form = ~ mes | id))
-m1.gaus <- update(m1.AR, correlation = corGaus(form = ~ mes | id))
-m1.markov <- update(m1.AR, correlation = corCAR1(form = ~ mes | id))
-anova(m1.AR, m1.exp, m1.markov, m1.gaus)
+m1.markov <- lme(long ~ 1 + sexo + club + sexo:club + mes + tto:mes + sexo:mes + club:mes+ sexo:club:mes + sexo:tto:mes + tto:club:mes + tto:sexo:club:mes,
+             random = ~ 1 | id,
+             weights = varIdent(form = ~ 1 | mes),
+             correlation = corCAR1(form = ~ mes | id),
+             method = "REML", 
+             data = micosis_l)
+
+m1.exp <- update(m1.markov, correlation = corExp(form = ~ mes | id))
+m1.gaus <- update(m1.markov, correlation = corGaus(form = ~ mes | id))
+
+anova( m1.pend.al,m1.markov,m1.exp, m1.gaus)
+
 ```
+¿ Como seguimos?
+
+Comparamos todos los modelos con ordenada aleatoria y estructura de corr con BIC y AIC
+Verificamos los residuos del modelo con pendiente aleatoria y del mejor de la comparación
+
 ```{r}
-#TODO: consultas: variograma, cual quda? 
 #TODO: interaccione en ordenada? sexo club y la interacción
 #TODO:paso a paso para seleccionar modelo
 ```
 
+## Análisis de residuos 
+```{r}
+variograma <- FALSE
+vgm1.1 <- NULL
+vgm2.2 <- NULL
+
+if (variograma) {
+  # Variograma para m1.exp
+  resid.1 <- data.frame(micosis_l, 
+                        pred = fitted(m1.exp), 
+                        resid = resid(m1.exp, type = "p"))
+  resid.1 <- data.frame(resid.1, residChol = resid(m1.exp, type = 'n'))
+  vgm1 <- variogram(resid.1$id, resid.1$mes, resid.1$residChol)
+  vgm1 <- as.data.frame(vgm1$svar)
+  saveRDS(vgm1, "utils/vgm1.rds")
+
+
+  # Variograma para m1.pend.al
+  resid.2 <- data.frame(micosis_l, 
+                        pred = fitted(m1.pend.al), 
+                        resid = resid(m1.pend.al, type = "p"))
+  resid.2 <- data.frame(resid.2, residChol = resid(m1.pend.al, type = 'n'))
+  vgm2 <- variogram(resid.2$id, resid.2$mes, resid.2$residChol)
+  vgm2 <- as.data.frame(vgm2$svar)
+  saveRDS(vgm2.2, "utils/vgm2.rds")
+}
+vgm1 <- readRDS("utils/vgm1.rds")
+vgm2 <- readRDS("utils/vgm2.rds")
+
+v1 <- ggplot(data = vgm1, aes(x = vt, y = vv)) +
+  geom_point(color = 'grey50') +
+  geom_smooth(method = loess, se = FALSE) +
+  geom_hline(yintercept = 1) +
+  theme_light() +
+  scale_x_continuous("Rezago", breaks = seq(0, 16, 1)) +
+  scale_y_continuous("Variograma muestral", breaks = seq(0, 10, 1)) +
+  coord_cartesian(ylim = c(0, 3)) + 
+  labs(title = "Variograma muestral") +
+  theme(plot.title = element_text(size = 15)) 
+
+v2<- ggplot(data = vgm2, aes(x = vt, y = vv)) +
+  geom_point(color = 'grey50') +
+  geom_smooth(method = loess, se = FALSE) +
+  geom_hline(yintercept = 1) +
+  theme_light() +
+  scale_x_continuous("Rezago", breaks = seq(0, 16, 1)) +
+  scale_y_continuous("Variograma muestral", breaks = seq(0, 10, 1)) +
+  coord_cartesian(ylim = c(0, 3)) + 
+  labs(title = "Variograma muestral") +
+  theme(plot.title = element_text(size = 15))  
+v1+v2
+```
+
+### Residuos vs Predichos
+
+```{r}
+r1 <- ggplot(data = resid.1) +
+  geom_point(aes(x = pred, y = resid), color = 'steelblue') +
+  geom_hline(yintercept = 0) +
+  geom_hline(yintercept = c(-3, 3), linetype = 2) +
+  theme_light() +
+  scale_x_continuous("Valores predichos") +
+  scale_y_continuous("Residuos estandarizados", breaks = seq(-3, 3, 1)) +
+  labs(title = "Residuos estandarizados vs valores predichos") +
+  theme(plot.title = element_text(size = 15))
+r2 <- ggplot(data = resid.2) +
+  geom_point(aes(x = pred, y = resid), color = 'steelblue') +
+  geom_hline(yintercept = 0) +
+  geom_hline(yintercept = c(-3, 3), linetype = 2) +
+  theme_light() +
+  scale_x_continuous("Valores predichos") +
+  scale_y_continuous("Residuos estandarizados", breaks = seq(-3, 3, 1)) +
+  labs(title = "Residuos estandarizados vs valores predichos") +
+  theme(plot.title = element_text(size = 15))
+r1+r2
+```
+
+### LINEALIDAD
+ Residuos marginales estandarizados vs tiempo
+ 
+```{r}
+resid.11 = data.frame(micosis_l,
+                     residCondEst = resid(m1.exp, type = 'p', level = 1),
+                     residMargEst = resid(m1.exp, type = 'p', level = 0),
+                     residMargChol = resid(m1.exp, type = 'n', level = 0),
+                     predCond = fitted(m1.exp, level = 1),
+                     predMarg = fitted(m1.exp, level = 0))
+resid.22 = data.frame(micosis_l,
+                     residCondEst = resid(m1.pend.al, type = 'p', level = 1),
+                     residMargEst = resid(m1.pend.al, type = 'p', level = 0),
+                     residMargChol = resid(m1.pend.al, type = 'n', level = 0),
+                     predCond = fitted(m1.pend.al, level = 1),
+                     predMarg = fitted(m1.pend.al, level = 0))
+```
+
+
+```{r}
+r11 <- ggplot(data = resid.11, aes(x = mes, y = residMargEst)) +
+  geom_point(color = 'steelblue') +
+  geom_hline(yintercept = 0) +
+  theme_light() +
+  scale_x_continuous("Valores predichos") +
+  scale_y_continuous("Residuos marginales estandarizados", breaks = seq(-10, 10, 1)) +
+  labs(title = "Residuos marginales estandarizados vs tiempo") +
+  theme(plot.title = element_text(size = 15))
+r22 <- ggplot(data = resid.22, aes(x = mes, y = residMargEst)) +
+  geom_point(color = 'steelblue') +
+  geom_hline(yintercept = 0) +
+  theme_light() +
+  scale_x_continuous("Valores predichos") +
+  scale_y_continuous("Residuos marginales estandarizados", breaks = seq(-10, 10, 1)) +
+  labs(title = "Residuos marginales estandarizados vs tiempo") +
+  theme(plot.title = element_text(size = 15))
+r11+r22
+```
+Vemos un patrón aleatorio
+
+### NORMALIDAD DEL ERROR CONDICIONAL
+ QQ plot de los residuos condicionales estandarizados
+
+```{r}
+rqq1 <- ggplot(data = resid.11, aes(sample = residCondEst)) +
+  stat_qq_band(bandType = 'boot', fill = 'grey') +
+  stat_qq_line() + 
+  stat_qq_point(color = 'steelblue') +
+  theme_light() +
+  labs(x = 'Cuantiles te?ricos', y = 'Residuos condicionales estandarizados',
+       title = 'Gráfico probabilistico normal de los residuos condicionales')
+rqq2 <- ggplot(data = resid.22, aes(sample = residCondEst)) +
+  stat_qq_band(bandType = 'boot', fill = 'grey') +
+  stat_qq_line() + 
+  stat_qq_point(color = 'steelblue') +
+  theme_light() +
+  labs(x = 'Cuantiles te?ricos', y = 'Residuos condicionales estandarizados',
+       title = 'Gráfico probabilistico normal de los residuos condicionales')
+rqq1+rqq2
+```
+
+```{r}
+#resid.11 = mutate(resid.11, id = rep(1:200, each=6))
+#resid.22 = mutate(resid.22, id = rep(1:200, each=6))
+
+marg1 <- ggplot(data = resid.11) +
+  geom_point(aes(x = id, y = residMargEst), color = 'steelblue') +
+  geom_hline(yintercept = 0) +
+  theme_light() +
+  #scale_x_continuous("Observación") +
+  scale_y_continuous("Residuos marginales estandarizados", breaks = seq(-6, 6, 1)) +
+  labs(title = "Residuos marginales estandarizados vs tiempo") +
+  theme(plot.title = element_text(size = 15))
+
+marg2 <- ggplot(data = resid.22) +
+  geom_point(aes(x = id, y = residMargEst), color = 'steelblue') +
+  geom_hline(yintercept = 0) +
+  theme_light() +
+  #scale_x_continuous("Observación") +
+  scale_y_continuous("Residuos marginales estandarizados", breaks = seq(-6, 6, 1)) +
+  labs(title = "Residuos marginales estandarizados vs tiempo") +
+  theme(plot.title = element_text(size = 15))
+
+cond1 <- ggplot(data = resid.11) +
+  geom_point(aes(x = id, y = residCondEst), color = 'steelblue') +
+  geom_hline(yintercept = 0) +
+  theme_light() +
+  #scale_x_continuous("Observación") +
+  scale_y_continuous("Residuos condicinales estandarizados", breaks = seq(-6, 6, 1)) +
+  labs(title = "Residuos condicionales estandarizados vs tiempo") +
+  theme(plot.title = element_text(size = 15))
+cond2 <- ggplot(data = resid.22) +
+  geom_point(aes(x = id, y = residCondEst), color = 'steelblue') +
+  geom_hline(yintercept = 0) +
+  theme_light() +
+  #scale_x_continuous("Observación") +
+  scale_y_continuous("Residuos condicinales estandarizados", breaks = seq(-6, 6, 1)) +
+  labs(title = "Residuos condicionales estandarizados vs tiempo") +
+  theme(plot.title = element_text(size = 15))
+
+(marg1+cond1)
+(marg2+cond2)
+```
+
+### NORMALIDAD DE LOS EFECTOS ALEATORIOS
+ Chi2(gl=q) QQ plot de la distancia de Mahalanobis
+
+```{r}
+D1 = getVarCov(m1.exp, type="random.effects") 
+Mi1 = mahalanobis(ranef(m1.exp), 0, D1)
+Mi1 = data.frame(id = micosis_a$id, Mi1)
+
+D2 = getVarCov(m1.pend.al, type="random.effects") 
+Mi2 = mahalanobis(ranef(m1.pend.al), 0, D2)
+Mi2 = data.frame(id = micosis_a$id, Mi2)
+
+# Distribución = Chi-cuadrado y par?metros gl = q
+dist = 'chisq'
+gl = list(df = 1) # Numero de efectos aleatorios
+
+ef1 <- ggplot(data = Mi, aes(sample = Mi)) +
+  stat_qq_band(distribution = dist, dparams = gl, fill = 'grey80') +
+  stat_qq_line(distribution = dist, dparams = gl) + 
+  stat_qq_point(distribution = dist, dparams = gl, color = 'steelblue') +
+  theme_light() +
+  labs(x = 'Cuantiles te?ricos', y = 'Distancia de Mahalanobis',
+       title = 'Gráfico probabilistico chi-cuadrado de la distancia de Mahalanobis')
+ef2 <- ggplot(data = Mi, aes(sample = Mi)) +
+  stat_qq_band(distribution = dist, dparams = 2, fill = 'grey80') +
+  stat_qq_line(distribution = dist, dparams = 2) + 
+  stat_qq_point(distribution = dist, dparams = 2, color = 'steelblue') +
+  theme_light() +
+  labs(x = 'Cuantiles te?ricos', y = 'Distancia de Mahalanobis',
+       title = 'Gráfico probabilistico chi-cuadrado de la distancia de Mahalanobis')
+ef1+ef2
+```
+
+```{r}
+indv1 <- ggplot(data = Mi1) +
+  geom_point(aes(x = id, y = Mi1), color = 'steelblue') +
+  geom_hline(yintercept = 0) +
+  theme_light() +
+#  scale_x_continuous("Individuo") +
+  scale_y_continuous("Distancia de Mahalanobis") + #, breaks = seq(-6, 6, 1)) +
+  labs(title = "Distancia de Mahalanobis vs id") +
+  theme(plot.title = element_text(size = 15))
+indv2 <- ggplot(data = Mi2) +
+  geom_point(aes(x = id, y = Mi2), color = 'steelblue') +
+  geom_hline(yintercept = 0) +
+  theme_light() +
+#  scale_x_continuous("Individuo") +
+  scale_y_continuous("Distancia de Mahalanobis") + #, breaks = seq(-6, 6, 1)) +
+  labs(title = "Distancia de Mahalanobis vs id") +
+  theme(plot.title = element_text(size = 15))
+indv1 + indv2
+
+# individuo 72 flojo de papeles
+```
+
+```{r}
+ggplot() + 
+  geom_line(data = micosis_l, mapping = aes(x = mes, y = long, group = id), 
+            size = 0.5, na.rm = T, color = 'grey50') +
+  geom_point(size = 0.5, na.rm = T, color = 'grey50') +
+  geom_line(data = filter(micosis_l,id == 72), mapping = aes(x = mes, y = long), 
+            size = 0.5, na.rm = T, color = 'orangered') +
+  geom_line(data = filter(micosis_l,id == 183), mapping = aes(x = mes, y = long), 
+            size = 0.5, na.rm = T, color = 'green') +
+  facet_wrap(~ tto) +
+  theme_light() +
+  #scale_x_continuous("Mes", breaks = seq(0, 16, 2)) +
+  #scale_y_continuous("Puntaje de discapacidad", 
+   #                  limits = c(0, 80), breaks = seq(0, 80, 10)) +
+  labs(title = "Evolución del puntaje de discapacidad a través del tiempo según trt") +
+  theme(plot.title = element_text(size = 17))
+```
+### 3. PRUEBAS DE HIPÓTESIS SOBRE LA MEDIA
+$Y_{ij}=\beta_0 + \beta_{01}.Sexo_i + \beta_{02}.Club_i +\beta_{03}.Club_i.Sexo_i + b_{0i} + (\beta_1 + \beta_{11}.Trat_i + \beta_{12}.Sexo_i + \beta_{13}.Club_i +\beta_{14}.Club_i.Sexo_i +\beta_{15}.Club_i.Trat_i +\beta_{16}.Sexo_i.Trat_i  +\beta_{17}.Sexo_i.Trat_i.Cub_i ).t_{ij}+e_{ij}$
+
+Modelo en etapas:
+
+Individual: $Y_{ij}= e_{ij}$
+
+Poblacional: $\beta_{0i}=B_1 + B_2*D_{1i} + B_3*D_{2i} + b_{0i}$
+$\beta_{1i}=B_4 + B_5*D_{1i} + B_6*D_{2i}$
+$\beta_{2i}=B_7 + B_8*D_{1i} + B_9*D_{2i}$
+Reestimamos el modelo usando ML
+```{r}
+m3 = lme(puntaje ~ trt*semana + trt*semana2, 
+         random = ~ 1|id, 
+         correlation = corCAR1(form= ~ semana|id), 
+         method = 'ML', 
+         data = distonia)
+summary(m3)
+```
+
+#### D.i
+$H_0)$ La aleatorización se hizo de manera adecuada (ordenadas iguales para todos los grupos)
+$H_0)\beta_2 = \beta_3 = 0$ 
+
+```{r}
+m3.d1 = update(m3, puntaje ~ 1 + semana + semana2 + trt:semana + trt:semana2)
+summary(m3.d1)
+# summary(m3)
+anova(m3.d1, m3)
+```
+No rechazo $H_0$ por lo que la aleatorización es adecuada
+
+#### D.ii
+ H0) tasa de cambio constante
+ $\beta_6 = \beta_9 = 0$
+ 
+```{r}
+m3.d2 = update(m3, puntaje ~ trt + trt:semana + semana2)
+summary(m3.d2)
+
+anova(m3, m3.d2)
+
+```
+Rechazo $H_0$ lo que significa que la tasa de cambio es constante a traves del tiempo.
+
+#### D.iii
+ H0) Patrón de cambio igual entre grupos (paralelismo)
+ $H_0)\beta_5 = \beta_6 = \beta_6 = \beta_9 = 0$
+ 
+```{r}
+m3.d3 = update(m3, puntaje ~ trt + semana + semana2)
+summary(m3.d3)
+
+anova(m3, m3.d3)
+
+```
+
+Rechazo $H_0)$ por lo que la tasa de cambio no es la misma para ambos grupos.
