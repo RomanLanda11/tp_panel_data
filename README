@@ -45,7 +45,9 @@ club o pileta de natación.
 El proyecto está organizado de la siguiente manera:
 
 ```
-├─── data                             # Conjuntos de datos.
+├─── data                             # Conjuntos de datos
+|
+├─── img                              # Resultados en imagen
 |
 └─── utils                            # Elementos necesarios para renderizar
 ```
@@ -69,7 +71,8 @@ como las implicaciones prácticas de los resultados.
 ## Resultados
 
 Los resultados del analisis de estre proyecto se veran reflejado en un poster, formato
-util para realizar presentaicones en charlas y/o congresos.
+util para realizar presentaicones en charlas y/o congresos. 
+Se encunetra en `\img\poster_resultado.jpg`
 
 -------------------------------------------------------------------------------
 
@@ -125,6 +128,8 @@ The project is organized as follows:
 ```
 ├─── data                             # Dataset files
 |
+├─── img                             
+|
 └─── utils                            # Required elements for rendering
 ```
 
@@ -149,3 +154,4 @@ and the practical implications of the results.
 
 The results of this project will be presented in a poster format, which is suitable
 for presentations at talks and/or conferences.
+Archived `\img\poster_resultado.jpg`
