@@ -1,9 +1,18 @@
 ---
-title: "report"
-author: "Román Landa"
+title: "Dato de panel"
+author: "Irisarri - Landa - Ovando"
 date: "2024-11-08"
-output: html_document
+html_document:
+  toc: TRUE
+number_sections: FALSE
+df_print: paged
+theme: cerulean
 ---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width=7, fig.height=5)
+```
+
 ```{r}
 library(readxl)
 library(tidyverse)
@@ -13,7 +22,6 @@ library(kableExtra)
 library(nlme)
 library(patchwork)
 library(qqplotr)
-
 ```
 
 # Datos
@@ -606,4 +614,4 @@ Pendiente:
 
 # Conclusion
 
-Con estos resultados recomendariamos a los pacientes con micosis avanzada en la uña utilizar el tratamineto Itraconazol y no concurrir a clubes y/o piletas.
+Con estos resultados recomendariamos a los pacientes con micosis avanzada en la uña utilizar el tratamiento Itraconazol y no concurrir a clubes y/o piletas.
