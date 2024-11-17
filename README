@@ -51,12 +51,16 @@ El proyecto está organizado de la siguiente manera:
 ```
 ## Resultado final
 
-El resultado final de este análisis es un **póster**, diseñado para presentar los hallazgos del estudio de manera clara y visualmente atractiva. Este póster está pensado para ser exhibido en un congreso en el futuro, destacando tanto el análisis estadístico como las implicaciones prácticas de los resultados.
+El resultado final de este análisis es un **póster**, diseñado para presentar los 
+hallazgos del estudio de manera clara y visualmente atractiva. Este póster está pensado 
+para ser exhibido en un congreso en el futuro, destacando tanto el análisis estadístico 
+como las implicaciones prácticas de los resultados.
 
 ## Cómo renderizar
 
 1. **Requisitos previos:**
-   - R instalado con las siguientes bibliotecas: `readxl`, `nlme`, `ggplot2`, `tidyverse`, `qqplotr`, `patchwork`, entre otras.
+   - R instalado con las siguientes bibliotecas: `readxl`, `nlme`, `ggplot2`, 
+   `tidyverse`, `qqplotr`, `patchwork`, entre otras.
    - Archivo de datos `micosis.xlsx` ubicado en `\data`.
 
 2. **Ejecución del análisis:**
@@ -64,7 +68,7 @@ El resultado final de este análisis es un **póster**, diseñado para presentar
 
 ## Resultados
 
-Los resultados del analisis de estre proyecto se veran reflejado en un poster. Formato
+Los resultados del analisis de estre proyecto se veran reflejado en un poster, formato
 util para realizar presentaicones en charlas y/o congresos.
 
 -------------------------------------------------------------------------------
@@ -73,25 +77,46 @@ util para realizar presentaicones en charlas y/o congresos.
 
 ## Objective
 
-The objective of this project is to analyze data obtained from a clinical trial to compare the effectiveness of two oral treatments (Terbinafine and Itraconazole) in the progression of the unaffected length of nails with advanced mycosis. The analysis is conducted using linear mixed models for longitudinal data, considering the effects of gender and attendance at sports facilities in the results. 
+ The objective of this project is to analyze data obtained from a clinical trial 
+to compare the effectiveness of two oral treatments (Terbinafine and Itraconazole) 
+in the progression of the unaffected length of nails with advanced mycosis. 
+The analysis is conducted using linear mixed models for longitudinal data, 
+considering the effects of gender and attendance at sports facilities in the results. 
 
-This work is part of the course *Longitudinal Data Analysis* in the final year of the Bachelor’s Degree in Statistics at the National University of Rosario.
+ This work is part of the course *Longitudinal Data Analysis* in the final year 
+of the Bachelor’s Degree in Statistics at the National University of Rosario.
 
 ## Context
 
-Nail fungal infection is a common condition that not only disfigures and damages the nail but can also cause aesthetic and social issues for those affected. It is characterized by nail discoloration, thickening, and the presence of a dense crust.
+ Nail fungal infection is a common condition that not only disfigures and damages
+the nail but can also cause aesthetic and social issues for those affected. 
+It is characterized by nail discoloration, thickening, and the presence of a dense crust.
 
-The standard treatment involves the removal of the affected nail area, followed by the application of an antifungal ointment, or alternatively, the use of oral medication. Oral treatments are generally expected to yield better results compared to ointments. 
+ The standard treatment involves the removal of the affected nail area, followed 
+by the application of an antifungal ointment, or alternatively, the use of oral 
+medication. Oral treatments are generally expected to yield better results compared 
+to ointments. 
 
-The study conducted by the researchers focused on comparing two oral medications: Terbinafine (250 mg/day, referred to as treatment 1) and Itraconazole (200 mg/day, referred to as treatment 2).
+The study conducted by the researchers focused on comparing two oral medications: 
+Terbinafine (250 mg/day, referred to as treatment 1) and Itraconazole (200 mg/day, 
+referred to as treatment 2).
 
 ## Materials
 
-Researchers recruited 200 individuals suffering from advanced nail mycosis. Each participant visited a physician who removed the affected area of the nail. Participants were then randomly assigned to treatment with Terbinafine (treatment 1) or Itraconazole (treatment 2). Before starting the treatment, the length (in millimeters) of the unaffected portion of the nail (the part that had not been removed) was recorded.
+ Researchers recruited 200 individuals suffering from advanced nail mycosis. Each 
+participant visited a physician who removed the affected area of the nail. Participants 
+were then randomly assigned to treatment with Terbinafine (treatment 1) or Itraconazole 
+(treatment 2). Before starting the treatment, the length (in millimeters) of the 
+unaffected portion of the nail (the part that had not been removed) was recorded.
 
-Participants returned for follow-up visits at 1 month, 2 months, 3 months, 6 months, and 12 months, during which the length of the unaffected part of the nail was measured again. Intuitively, as the nail grows (hopefully without signs of mycosis due to the treatment effects), this length is expected to increase if the treatment is effective.
+ Participants returned for follow-up visits at 1 month, 2 months, 3 months, 6 months, 
+and 12 months, during which the length of the unaffected part of the nail was 
+measured again. Intuitively, as the nail grows (hopefully without signs of mycosis
+due to the treatment effects), this length is expected to increase if the treatment 
+is effective.
 
-Additionally, the participants' gender and whether they attended a gym, club, or swimming pool were recorded.
+Additionally, the participants' gender and whether they attended a gym, club, or
+swimming pool were recorded.
 
 ## Structure
 
@@ -105,12 +130,16 @@ The project is organized as follows:
 
 ## Final Outcome
 
-The final outcome of this analysis is a **poster** designed to present the study findings in a clear and visually appealing manner. This poster is intended for future presentation at a conference, highlighting both the statistical analysis and the practical implications of the results.
+ The final outcome of this analysis is a **poster** designed to present the study
+findings in a clear and visually appealing manner. This poster is intended for 
+future presentation at a conference, highlighting both the statistical analysis 
+and the practical implications of the results.
 
 ## How to Render
 
 1. **Prerequisites:**
-   - R installed with the following libraries: `readxl`, `nlme`, `ggplot2`, `tidyverse`, `qqplotr`, `patchwork`, among others.
+   - R installed with the following libraries: `readxl`, `nlme`, `ggplot2`, 
+   `tidyverse`, `qqplotr`, `patchwork`, among others.
    - The data file `micosis.xlsx` located in the `\data` folder.
 
 2. **Running the Analysis:**
@@ -118,4 +147,5 @@ The final outcome of this analysis is a **poster** designed to present the study
 
 ## Results
 
-The results of this project will be presented in a poster format, which is suitable for presentations at talks and/or conferences.
+The results of this project will be presented in a poster format, which is suitable
+for presentations at talks and/or conferences.
