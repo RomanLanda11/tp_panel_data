@@ -1,1 +1,121 @@
-Hello
+# README: Análisis de Datos Longitudinales
+
+## Objetivo
+
+ El objetivo de este proyecto es analizar los datos obtenidos en un ensayo clínico 
+para comparar la eficacia de dos tratamientos orales (Terbinafina e Itraconazol) 
+en la evolución de la longitud no afectada de uñas con micosis avanzada. El análisis 
+se realiza utilizando modelos lineales mixtos para datos longitudinales, considerando 
+efectos del sexo y la concurrencia a instituciones deportivas en los resultados.
+ Este trabajo es parte de la materia *Análisis de Datos Longitudinales* del último 
+año de la Licenciatura en Estadística de la Universidad Nacional de Rosario.
+
+## Contexto
+
+ La infección micótica de la uña es una condición común que no sólo puede desfigurar
+y comprometer la uña sino que también puede causar trastornos estéticos y sociales 
+en las personas que padecen la enfermedad. Ésta se distingue por la decoloración de 
+la uña, la cual se vuelve más gruesa y cubierta por una espesa corteza. 
+ El tratamiento estándar implica la remoción de la parte afectada de la uña, 
+seguida de la aplicación de un ungüento antimicótico o bien se utiliza 
+medicación por vía oral. Generalmente se esperan mejores resultados con el uso 
+de tratamientos de ingesta oral que con el uso de ungüentos.
+ El estudio realizado por los investigadores se focalizaba en la comparación de 
+dos medicaciones orales, terbinafina (250 mg/día, denotada como tratamiento 1) e 
+itraconazol (200 mg/día, denotada como tratamiento 2).
+
+
+## Materiales
+
+ Los investigadores reclutaron 200 personas que sufrían de micosis avanzada en la uña. 
+Cada uno de estos sujetos visitó al médico, quien removió la zona de la  uña afectada. 
+Luego cada sujeto fue asignado aleatoriamente al tratamiento con terbinafina 
+(tratamiento 1) o con itraconazol (tratamiento 2). Previo al comienzo del tratamiento, 
+se registró la longitud (en milímetros) de la parte de la uña no afectada por el hongo 
+(la parte de la uña que no había sido removida). Luego, los sujetos regresaban a 
+la consulta al mes, 2 meses, 3 meses, 6 meses y 12 meses, y se medía nuevamente 
+la longitud de la parte no afectada de la uña. Intuitivamente, a medida que la 
+uña crezca (esperanzadamente sin signos de micosis debido a los efectos del 
+tratamiento), esta longitud se incrementará si el tratamiento funciona. 
+ También se registró el sexo de cada uno de los pacientes y si visitó un gimnasio,
+club o pileta de natación.
+
+## Estructura
+
+El proyecto está organizado de la siguiente manera:
+
+```
+├─── data                             # Conjuntos de datos.
+|
+└─── utils                            # Elementos necesarios para renderizar
+```
+## Resultado final
+
+El resultado final de este análisis es un **póster**, diseñado para presentar los hallazgos del estudio de manera clara y visualmente atractiva. Este póster está pensado para ser exhibido en un congreso en el futuro, destacando tanto el análisis estadístico como las implicaciones prácticas de los resultados.
+
+## Cómo renderizar
+
+1. **Requisitos previos:**
+   - R instalado con las siguientes bibliotecas: `readxl`, `nlme`, `ggplot2`, `tidyverse`, `qqplotr`, `patchwork`, entre otras.
+   - Archivo de datos `micosis.xlsx` ubicado en `\data`.
+
+2. **Ejecución del análisis:**
+   - Ejecutar **Knit** en `report.Rmd` 
+
+## Resultados
+
+Los resultados del analisis de estre proyecto se veran reflejado en un poster. Formato
+util para realizar presentaicones en charlas y/o congresos.
+
+-------------------------------------------------------------------------------
+
+# README: Longitudinal Data Analysis
+
+## Objective
+
+The objective of this project is to analyze data obtained from a clinical trial to compare the effectiveness of two oral treatments (Terbinafine and Itraconazole) in the progression of the unaffected length of nails with advanced mycosis. The analysis is conducted using linear mixed models for longitudinal data, considering the effects of gender and attendance at sports facilities in the results. 
+
+This work is part of the course *Longitudinal Data Analysis* in the final year of the Bachelor’s Degree in Statistics at the National University of Rosario.
+
+## Context
+
+Nail fungal infection is a common condition that not only disfigures and damages the nail but can also cause aesthetic and social issues for those affected. It is characterized by nail discoloration, thickening, and the presence of a dense crust.
+
+The standard treatment involves the removal of the affected nail area, followed by the application of an antifungal ointment, or alternatively, the use of oral medication. Oral treatments are generally expected to yield better results compared to ointments. 
+
+The study conducted by the researchers focused on comparing two oral medications: Terbinafine (250 mg/day, referred to as treatment 1) and Itraconazole (200 mg/day, referred to as treatment 2).
+
+## Materials
+
+Researchers recruited 200 individuals suffering from advanced nail mycosis. Each participant visited a physician who removed the affected area of the nail. Participants were then randomly assigned to treatment with Terbinafine (treatment 1) or Itraconazole (treatment 2). Before starting the treatment, the length (in millimeters) of the unaffected portion of the nail (the part that had not been removed) was recorded.
+
+Participants returned for follow-up visits at 1 month, 2 months, 3 months, 6 months, and 12 months, during which the length of the unaffected part of the nail was measured again. Intuitively, as the nail grows (hopefully without signs of mycosis due to the treatment effects), this length is expected to increase if the treatment is effective.
+
+Additionally, the participants' gender and whether they attended a gym, club, or swimming pool were recorded.
+
+## Structure
+
+The project is organized as follows:
+
+```
+├─── data                             # Dataset files
+|
+└─── utils                            # Required elements for rendering
+```
+
+## Final Outcome
+
+The final outcome of this analysis is a **poster** designed to present the study findings in a clear and visually appealing manner. This poster is intended for future presentation at a conference, highlighting both the statistical analysis and the practical implications of the results.
+
+## How to Render
+
+1. **Prerequisites:**
+   - R installed with the following libraries: `readxl`, `nlme`, `ggplot2`, `tidyverse`, `qqplotr`, `patchwork`, among others.
+   - The data file `micosis.xlsx` located in the `\data` folder.
+
+2. **Running the Analysis:**
+   - Run **Knit** in the `report.Rmd` file.
+
+## Results
+
+The results of this project will be presented in a poster format, which is suitable for presentations at talks and/or conferences.
