@@ -9,9 +9,11 @@ library(readxl)
 library(tidyverse)
 library(GGally)
 library(joineR)
+library(kableExtra)
 library(nlme)
 library(patchwork)
 library(qqplotr)
+
 ```
 
 # Datos
@@ -50,6 +52,22 @@ micosis_l$medicion <- case_when(micosis_l$mes == 0 ~ 1,
 ```
 
 # Análisis descriptivo
+
+## Tabla de medidas resumen
+
+```{r}
+desvios <- micosis_l %>% group_by(tto,mes_factor) %>% summarise(desvios=sd(long))
+tabla_desvios <- desvios %>%
+  pivot_wider(names_from = mes_factor, values_from = desvios) %>% 
+  rename(Tratamiento = tto)
+colnames(tabla_desvios) <- c("Tratamiento","Mes 0","Mes 1","Mes 2","Mes 3","Mes 6","Mes 12")
+# Crear la tabla con kableExtra
+tabla_desvios %>%
+  kbl(caption = "Evolución de los desvíos estándar por tratamiento y mes") %>%
+  kable_styling(full_width = F, bootstrap_options = c("striped", "hover")) %>% 
+  row_spec(0, background = "#d8d2c4", color = "#3d3934") %>% 
+  row_spec(1:2, background = "#eee9dd", color = "#3d3934")
+```
 
 ## Perfiles individuales
 
