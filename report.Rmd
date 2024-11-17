@@ -9,7 +9,6 @@ library(readxl)
 library(tidyverse)
 library(GGally)
 library(joineR)
-# Para ajustar MLG y MLM
 library(nlme)
 library(patchwork)
 library(qqplotr)
@@ -52,7 +51,7 @@ micosis_l$medicion <- case_when(micosis_l$mes == 0 ~ 1,
 
 # Análisis descriptivo
 
-## Gráfico de perfiles individuales
+## Perfiles individuales
 
 ```{r}
 ggplot(micosis_l, aes(x = mes, y = long, group = id, color = tto)) +
@@ -60,32 +59,34 @@ ggplot(micosis_l, aes(x = mes, y = long, group = id, color = tto)) +
   geom_point(show.legend = FALSE) +
   facet_wrap(~ tto) +
   #scale_x_continuous("Edad (a?os)", breaks = seq(8, 14, 2)) +
-  #scale_y_continuous("Distancia") +
+  scale_y_continuous("Longitud no afectada [mm]") +
   #coord_cartesian(ylim = c(12, 32)) +
   theme_bw() +
-  scale_color_brewer(palette = 'Set1') +
-  labs(title = "Evoluci?n de?s del tiempo seg?n tto") +
+  #scale_color_brewer(palette = 'Set1') +
+  scale_color_manual(values = c("Itraconazol" = "cyan4", "Terbinafina" = "red")) +
+  labs(title = "Evolución de las uñas por tratamineto.") +
   theme(plot.title = element_text(size = 17),
         axis.title = element_text(size = 13),
         strip.text = element_text(size = 15))
 
 ```
 
-Vemos variabilidad entre e intra, las variancias aumentan a medida que transcurre el tiempo.
+Vemos variabilidad entre e intra. Las variancias aumentan a medida que transcurre el tiempo.
 
-## Gráfico de perfiles promedio
+## Perfiles promedio
 
 ```{r}
 ggplot(micosis_l, aes(x = mes, y = long, color = tto)) +
   stat_summary(fun = mean, geom = 'line', size = 1) + 
   stat_summary(fun = mean, geom = 'point', size = 2) +
-  #scale_color_brewer(palette = 'Set1') +
+  #coord_cartesian(ylim = c(12, 32)) +
+  scale_y_continuous("Longitud no afectada [mm]") +
+  scale_x_continuous("Mes") +
   #coord_cartesian(ylim = c(12, 32)) +
   theme_light() +
-  #scale_x_continuous("Edad (a?os)", breaks = seq(8, 14, 2)) +
-  #scale_y_continuous("Distancia") +
-  labs(title = "Evoluci?n de la distancia maxilar media a traves del tiempo seg?n sexo",
-       color = "Sexo") +
+  scale_color_manual(values = c("Itraconazol" = "cyan4", "Terbinafina" = "red")) +
+  labs( title = "Evolución promedio de la longitud por tratamiento.",
+        color = "Tratamiento.") +
   theme(plot.title = element_text(size = 17),
         axis.title = element_text(size = 13),
         strip.text = element_text(size = 15))
@@ -100,17 +101,22 @@ Podemos pensar en ordenadas similares y pendientes distintas. Ambos tratamientos
 ```{r}
 ggplot(micosis_l, aes(x = mes_factor, y = long, fill = tto)) +
   geom_boxplot() +
+  scale_x_discrete("Mes") +
+  scale_y_continuous("Longitud no afectada [mm]") +
   theme_light() +
-  #scale_x_discrete("") +
-  #scale_y_continuous("Distancia", limits = c(16,32), breaks = seq(16, 32, 2)) +
-  scale_fill_brewer(palette = 'Set1') +
-  labs(title = "DistribuciÃ³n de la distancia maxilar segÃºn edad y sexo",
-       fill = "Sexo") +
-  theme(plot.title = element_text(size = 15),
-        axis.title = element_text(size = 12),
-        legend.position = 'bottom')
+  scale_fill_manual(values = c("Itraconazol" = "cyan4", "Terbinafina" = "red")) + 
+  labs(
+    title = "Evolución de la dispersión de las uñas por tratamiento.",
+    fill = "Tratamiento"  # Cambié 'color' por 'fill' para el título de la leyenda
+  ) +
+  theme(
+    plot.title = element_text(size = 17),
+    axis.title = element_text(size = 13),
+    strip.text = element_text(size = 15)
+  )
 
 ```
+
 Vemos que las variancias aumentan con el tiempo. Las variancias son homogéneas entre tratamientos.
 
 ## Variograma
@@ -120,19 +126,20 @@ variograma <- FALSE
 vgm0 <- NULL
 if (variograma) {
   # Variograma 
-  vgm <- variogram(micosis_l_est$id, micosis_l_est$mes, micosis_l_est$long_est)
-  vgm0 = data.frame(vgm$svar)
+  vgm0 <- variogram(micosis_l_est$id, micosis_l_est$mes, micosis_l_est$long_est)
   saveRDS(vgm0, "utils/vgm0.rds")
 }
 vgm0 <- readRDS("utils/vgm0.rds")
+sigma0 <- vgm0$sigma2
+vgm0 = data.frame(vgm$svar)
 
 ggplot(data = vgm0, aes(x = vt, y = vv)) +
   geom_point(color = 'grey50', na.rm = TRUE) +
-  stat_summary(fun = mean, geom = 'line', color = 'purple3', size = 1, na.rm = TRUE) + 
-  geom_hline(yintercept = vgm0$sigma2) +
+  stat_summary(fun = mean, geom = 'line', color = 'cyan4', size = 1, na.rm = TRUE) + 
+  geom_hline(yintercept = sigma0) +
   theme_light() +
   scale_x_continuous("Rezago", breaks = seq(0, 12, 1)) +
-  scale_y_continuous("Variograma muestral") +
+  scale_y_continuous("") +
   coord_cartesian(ylim = c(0, 3)) + 
   labs(title = "Variograma muestral") +
   theme(plot.title = element_text(size = 15))
@@ -144,7 +151,6 @@ Vemos que la fuente de variabilidad dominante es la intra (error de medición y 
 # #Estandarizo - total
 # micosis_a_est <- scale(micosis_a[,5:10]) 
 # #micosis_a_est <- data.frame(micosis_a_est)
-# #summary(micosis_a_est)
 # 
 # ggpairs(data=micosis_a_est, title="Grafico de Draftman")
 ```
@@ -179,44 +185,48 @@ m1.gaus <- update(m1.markov, correlation = corGaus(form = ~ mes | id))
 anova( m1.pend.al,m1.markov,m1.exp, m1.gaus)
 
 ```
-¿ Como seguimos?
 
-Comparamos todos los modelos con ordenada aleatoria y estructura de corr con BIC y AIC
+¿ Como seguimos?
+Comparamos todos los modelos con ordenada aleatoria y estructura de correlación con BIC y AIC
 Verificamos los residuos del modelo con pendiente aleatoria y del mejor de la comparación
 
 
-
 ## Análisis de residuos 
+
 ```{r}
 variograma <- F
-vgm1.1 <- NULL
-vgm2.2 <- NULL
+vgm1 <- NULL
+vgm2 <- NULL
+resid.1 <- data.frame(micosis_l, 
+                      pred = fitted(m1.exp), 
+                      resid = resid(m1.exp, type = "p"))
+resid.1 <- data.frame(resid.1, residChol = resid(m1.exp, type = 'n'))
+resid.2 <- data.frame(micosis_l, 
+                      pred = fitted(m1.pend.al), 
+                      resid = resid(m1.pend.al, type = "p"))
+resid.2 <- data.frame(resid.2, residChol = resid(m1.pend.al, type = 'n'))
 
-  resid.1 <- data.frame(micosis_l, 
-                        pred = fitted(m1.exp), 
-                        resid = resid(m1.exp, type = "p"))
-  resid.1 <- data.frame(resid.1, residChol = resid(m1.exp, type = 'n'))
-  resid.2 <- data.frame(micosis_l, 
-                        pred = fitted(m1.pend.al), 
-                        resid = resid(m1.pend.al, type = "p"))
-  resid.2 <- data.frame(resid.2, residChol = resid(m1.pend.al, type = 'n'))
 if (variograma) {
   # Variograma para m1.exp
   vgm1 <- variogram(resid.1$id, resid.1$mes, resid.1$residChol)
-  vgm1 <- as.data.frame(vgm1$svar)
   saveRDS(vgm1, "utils/vgm1.rds")
 
   # Variograma para m1.pend.al
   vgm2 <- variogram(resid.2$id, resid.2$mes, resid.2$residChol)
-  vgm2 <- as.data.frame(vgm2$svar)
   saveRDS(vgm2, "utils/vgm2.rds")
 }
+
 vgm1 <- readRDS("utils/vgm1.rds")
+sigma1 <- vgm1$sigma2
+vgm1 = data.frame(vgm1$svar)
+
 vgm2 <- readRDS("utils/vgm2.rds")
+sigma2 <- vgm2$sigma2
+vgm2 = data.frame(vgm2$svar)
 
 v1 <- ggplot(data = vgm1, aes(x = vt, y = vv)) +
   geom_point(color = 'grey50') +
-  geom_smooth(method = loess, se = FALSE) +
+  geom_smooth(method = loess, se = FALSE, color = "cyan4") +
   geom_hline(yintercept = 1) +
   theme_light() +
   scale_x_continuous("Rezago", breaks = seq(0, 16, 1)) +
@@ -227,7 +237,7 @@ v1 <- ggplot(data = vgm1, aes(x = vt, y = vv)) +
 
 v2<- ggplot(data = vgm2, aes(x = vt, y = vv)) +
   geom_point(color = 'grey50') +
-  geom_smooth(method = loess, se = FALSE) +
+  geom_smooth(method = loess, se = FALSE, color = "red") +
   geom_hline(yintercept = 1) +
   theme_light() +
   scale_x_continuous("Rezago", breaks = seq(0, 16, 1)) +
@@ -242,28 +252,29 @@ v1+v2
 
 ```{r}
 r1 <- ggplot(data = resid.1) +
-  geom_point(aes(x = pred, y = resid), color = 'steelblue') +
+  geom_point(aes(x = pred, y = resid), color = 'cyan4') +
   geom_hline(yintercept = 0) +
   geom_hline(yintercept = c(-3, 3), linetype = 2) +
   theme_light() +
   scale_x_continuous("Valores predichos") +
   scale_y_continuous("Residuos estandarizados", breaks = seq(-3, 3, 1)) +
-  labs(title = "Residuos estandarizados vs valores predichos") +
+  labs(title = "") +
   theme(plot.title = element_text(size = 15))
 r2 <- ggplot(data = resid.2) +
-  geom_point(aes(x = pred, y = resid), color = 'steelblue') +
+  geom_point(aes(x = pred, y = resid), color = 'red') +
   geom_hline(yintercept = 0) +
   geom_hline(yintercept = c(-3, 3), linetype = 2) +
   theme_light() +
   scale_x_continuous("Valores predichos") +
   scale_y_continuous("Residuos estandarizados", breaks = seq(-3, 3, 1)) +
-  labs(title = "Residuos estandarizados vs valores predichos") +
+  labs(title = "") +
   theme(plot.title = element_text(size = 15))
 r1+r2
 ```
 
-### LINEALIDAD
- Residuos marginales estandarizados vs tiempo
+### Linealidad
+ 
+Residuos marginales estandarizados vs tiempo
  
 ```{r}
 resid.11 = data.frame(micosis_l,
@@ -283,88 +294,107 @@ resid.22 = data.frame(micosis_l,
 
 ```{r}
 r11 <- ggplot(data = resid.11, aes(x = mes, y = residMargEst)) +
-  geom_point(color = 'steelblue') +
+  geom_point(color = 'cyan4') +
   geom_hline(yintercept = 0) +
   theme_light() +
   scale_x_continuous("Valores predichos") +
   scale_y_continuous("Residuos marginales estandarizados", breaks = seq(-10, 10, 1)) +
-  labs(title = "Residuos marginales estandarizados vs tiempo") +
+  labs(title = "") +
   theme(plot.title = element_text(size = 15))
 r22 <- ggplot(data = resid.22, aes(x = mes, y = residMargEst)) +
-  geom_point(color = 'steelblue') +
+  geom_point(color = 'red') +
   geom_hline(yintercept = 0) +
   theme_light() +
   scale_x_continuous("Valores predichos") +
   scale_y_continuous("Residuos marginales estandarizados", breaks = seq(-10, 10, 1)) +
-  labs(title = "Residuos marginales estandarizados vs tiempo") +
+  labs(title = "") +
   theme(plot.title = element_text(size = 15))
 r11+r22
 ```
+
 Vemos un patrón aleatorio
 
-### NORMALIDAD DEL ERROR CONDICIONAL
- QQ plot de los residuos condicionales estandarizados
+### Normalidad de errores condicionales
+
+QQ plot de los residuos condicionales estandarizados
 
 ```{r}
 rqq1 <- ggplot(data = resid.11, aes(sample = residCondEst)) +
   stat_qq_band(bandType = 'boot', fill = 'grey') +
   stat_qq_line() + 
-  stat_qq_point(color = 'steelblue') +
+  stat_qq_point(color = 'cyan4') +
   theme_light() +
   labs(x = 'Cuantiles te?ricos', y = 'Residuos condicionales estandarizados',
-       title = 'Gráfico probabilistico normal de los residuos condicionales')
+       title = 'QQ Normal')
 rqq2 <- ggplot(data = resid.22, aes(sample = residCondEst)) +
   stat_qq_band(bandType = 'boot', fill = 'grey') +
   stat_qq_line() + 
-  stat_qq_point(color = 'steelblue') +
+  stat_qq_point(color = 'red') +
   theme_light() +
-  labs(x = 'Cuantiles te?ricos', y = 'Residuos condicionales estandarizados',
-       title = 'Gráfico probabilistico normal de los residuos condicionales')
+  labs(x = 'Cuantiles teoricos', y = 'Residuos condicionales estandarizados',
+       title = 'QQ Normal')
 rqq1+rqq2
 ```
 
 ```{r}
 marg1 <- ggplot(data = resid.11) +
-  geom_point(aes(x = id, y = residMargEst), color = 'steelblue') +
+  geom_point(aes(x = id, y = residMargEst), color = 'cyan4') +
   geom_hline(yintercept = 0) +
   theme_light() +
-  #scale_x_continuous("Observación") +
+  scale_x_discrete("ID") +
   scale_y_continuous("Residuos marginales estandarizados", breaks = seq(-6, 6, 1)) +
-  labs(title = "Residuos marginales estandarizados vs tiempo") +
-  theme(plot.title = element_text(size = 15))
+  #labs(title = "Residuos marginales estandarizados vs tiempo") +
+  theme(
+    plot.title = element_text(size = 15),
+    axis.text.x = element_blank(),   # Oculta las etiquetas del eje X
+    axis.ticks.x = element_blank()   # Opcional: Oculta también las marcas del eje X
+  )
 
 marg2 <- ggplot(data = resid.22) +
-  geom_point(aes(x = id, y = residMargEst), color = 'steelblue') +
+  geom_point(aes(x = id, y = residMargEst), color = 'red') +
   geom_hline(yintercept = 0) +
   theme_light() +
-  #scale_x_continuous("Observación") +
+  scale_x_discrete("ID") +
   scale_y_continuous("Residuos marginales estandarizados", breaks = seq(-6, 6, 1)) +
-  labs(title = "Residuos marginales estandarizados vs tiempo") +
-  theme(plot.title = element_text(size = 15))
+  #labs(title = "Residuos marginales estandarizados vs tiempo") +
+  theme(
+    plot.title = element_text(size = 15),
+    axis.text.x = element_blank(),   # Oculta las etiquetas del eje X
+    axis.ticks.x = element_blank()   # Opcional: Oculta también las marcas del eje X
+  )
 
 cond1 <- ggplot(data = resid.11) +
-  geom_point(aes(x = id, y = residCondEst), color = 'steelblue') +
+  geom_point(aes(x = id, y = residCondEst), color = 'cyan4') +
   geom_hline(yintercept = 0) +
   theme_light() +
-  #scale_x_continuous("Observación") +
+  scale_x_discrete("ID") +
   scale_y_continuous("Residuos condicinales estandarizados", breaks = seq(-6, 6, 1)) +
-  labs(title = "Residuos condicionales estandarizados vs tiempo") +
-  theme(plot.title = element_text(size = 15))
+  #labs(title = "Residuos condicionales estandarizados vs tiempo") +
+  theme(
+    plot.title = element_text(size = 15),
+    axis.text.x = element_blank(),   # Oculta las etiquetas del eje X
+    axis.ticks.x = element_blank()   # Opcional: Oculta también las marcas del eje X
+  )
 cond2 <- ggplot(data = resid.22) +
-  geom_point(aes(x = id, y = residCondEst), color = 'steelblue') +
+  geom_point(aes(x = id, y = residCondEst), color = 'red') +
   geom_hline(yintercept = 0) +
   theme_light() +
-  #scale_x_continuous("Observación") +
+  scale_x_discrete("ID") +
   scale_y_continuous("Residuos condicinales estandarizados", breaks = seq(-6, 6, 1)) +
-  labs(title = "Residuos condicionales estandarizados vs tiempo") +
-  theme(plot.title = element_text(size = 15))
+  #labs(title = "Residuos condicionales estandarizados vs tiempo") +
+  theme(
+    plot.title = element_text(size = 15),
+    axis.text.x = element_blank(),   # Oculta las etiquetas del eje X
+    axis.ticks.x = element_blank()   # Opcional: Oculta también las marcas del eje X
+  )
 
 (marg1+cond1)
 (marg2+cond2)
 ```
 
-### NORMALIDAD DE LOS EFECTOS ALEATORIOS
- Chi2(gl=q) QQ plot de la distancia de Mahalanobis
+### Normalidad de los efectos aleatorios
+
+QQ plot de la distancia de Mahalanobis
 
 ```{r}
 D1 = getVarCov(m1.exp, type="random.effects") 
@@ -382,41 +412,41 @@ gl = list(df = 1) # Numero de efectos aleatorios
 ef1 <- ggplot(data = Mi1, aes(sample = Mi1)) +
   stat_qq_band(distribution = dist, dparams = gl, fill = 'grey80') +
   stat_qq_line(distribution = dist, dparams = gl) + 
-  stat_qq_point(distribution = dist, dparams = gl, color = 'steelblue') +
+  stat_qq_point(distribution = dist, dparams = gl, color = 'cyan4') +
   theme_light() +
-  labs(x = 'Cuantiles te?ricos', y = 'Distancia de Mahalanobis',
-       title = 'Gráfico probabilistico chi-cuadrado de la distancia de Mahalanobis')
+  labs(x = 'Cuantiles teóricos', y = 'Distancia de Mahalanobis',
+       title = 'Gráfico probabilistico chi-cuadrado')
 ef2 <- ggplot(data = Mi2, aes(sample = Mi2)) +
   stat_qq_band(distribution = dist, dparams = 2, fill = 'grey80') +
   stat_qq_line(distribution = dist, dparams = 2) + 
-  stat_qq_point(distribution = dist, dparams = 2, color = 'steelblue') +
+  stat_qq_point(distribution = dist, dparams = 2, color = 'red') +
   theme_light() +
-  labs(x = 'Cuantiles te?ricos', y = 'Distancia de Mahalanobis',
-       title = 'Gráfico probabilistico chi-cuadrado de la distancia de Mahalanobis')
+  labs(x = 'Cuantiles teóricos', y = 'Distancia de Mahalanobis',
+       title = 'Gráfico probabilistico chi-cuadrado')
 ef1+ef2
 ```
 
 ```{r}
 indv1 <- ggplot(data = Mi1) +
-  geom_point(aes(x = id, y = Mi1), color = 'steelblue') +
+  geom_point(aes(x = id, y = Mi1), color = 'cyan4') +
   geom_hline(yintercept = 0) +
   theme_light() +
-#  scale_x_continuous("Individuo") +
+  scale_x_continuous("ID") +
   scale_y_continuous("Distancia de Mahalanobis") + #, breaks = seq(-6, 6, 1)) +
-  labs(title = "Distancia de Mahalanobis vs id") +
+  labs(title = "Distancia de Mahalanobis vs ID") +
   theme(plot.title = element_text(size = 15))
 indv2 <- ggplot(data = Mi2) +
-  geom_point(aes(x = id, y = Mi2), color = 'steelblue') +
+  geom_point(aes(x = id, y = Mi2), color = 'red') +
   geom_hline(yintercept = 0) +
   theme_light() +
-#  scale_x_continuous("Individuo") +
+  scale_x_continuous("ID") +
   scale_y_continuous("Distancia de Mahalanobis") + #, breaks = seq(-6, 6, 1)) +
-  labs(title = "Distancia de Mahalanobis vs id") +
+  labs(title = "Distancia de Mahalanobis vs ID") +
   theme(plot.title = element_text(size = 15))
 indv1 + indv2
-
 # individuo 72 flojo de papeles
 ```
+Individuo 72 flojo de papeles en el modelo sin pendiente aleatoria. En el modelo con pendiente aleatoria, el individuo 183 tambien parece un outlier.
 
 ```{r}
 ggplot() + 
@@ -424,45 +454,32 @@ ggplot() +
             size = 0.5, na.rm = T, color = 'grey50') +
   geom_point(size = 0.5, na.rm = T, color = 'grey50') +
   geom_line(data = filter(micosis_l,id == 72), mapping = aes(x = mes, y = long), 
-            size = 0.5, na.rm = T, color = 'orangered') +
+            size = 0.5, na.rm = T, color = 'cyan4') +
   geom_line(data = filter(micosis_l,id == 183), mapping = aes(x = mes, y = long), 
-            size = 0.5, na.rm = T, color = 'green') +
+            size = 0.5, na.rm = T, color = 'red') +
   facet_wrap(~ tto) +
   theme_light() +
-  #scale_x_continuous("Mes", breaks = seq(0, 16, 2)) +
-  #scale_y_continuous("Puntaje de discapacidad", 
-  #                   limits = c(0, 80), breaks = seq(0, 80, 10)) +
-  labs(title = "Evolución del puntaje de discapacidad a través del tiempo según trt") +
+  scale_x_continuous("Mes", breaks = seq(0, 12, 1)) +
+  scale_y_continuous("Longitud no afectada [mm]") +
+  labs(title = "Evolución de las uñas por tratamineto.") +
   theme(plot.title = element_text(size = 17))
 ```
-### 3. PRUEBAS DE HIPÓTESIS SOBRE LA MEDIA
+### Pruebas de hipotesis para la media
+
+Modelo:
 $Y_{ij}=\beta_0 + \beta_{01}.Sexo_i + \beta_{02}.Club_i +\beta_{03}.Club_i.Sexo_i + b_{0i} + (\beta_1 + \beta_{11}.Trat_i + \beta_{12}.Sexo_i + \beta_{13}.Club_i +\beta_{14}.Club_i.Sexo_i +\beta_{15}.Club_i.Trat_i +\beta_{16}.Sexo_i.Trat_i  +\beta_{17}.Sexo_i.Trat_i.Cub_i ).t_{ij}+e_{ij}$
 
-Modelo en etapas:
 
-Individual: $Y_{ij}= e_{ij}$
-
-Poblacional: $\beta_{0i}=B_1 + B_2*D_{1i} + B_3*D_{2i} + b_{0i} \\ \beta_{1i}=B_4 + B_5*D_{1i} + B_6*D_{2i} \\ \beta_{2i}=B_7 + B_8*D_{1i} + B_9*D_{2i}$
-
-Reestimamos el modelo usando ML
+Reajustamos el modelo usando máxima verosimilitud
 
 ```{r}
-m1.exp2 = update(m1.exp, 
-                 method = 'ML')
+m1.exp2 = update(m1.exp, method = 'ML')
 summary(m1.exp2)
 ```
 
-#### Preguuuuuntale
+# Preguntas de interés
 
-- ¿La longitud media de la parte no afectada por el hongo antes de comenzar el tratamiento está asociado con el sexo del paciente y el hecho que concurra al gimnasio, club o pileta?
-
-- ¿La tasa de cambio típica de la longitud media de uña no afectada difiere entre ambos tratamientos?
-
-- ¿La tasa de cambio de la longitud media de uña no afectada depende del sexo del paciente o del hecho que concurra al gimnasio, club o pileta?
-
-- Obtener estimaciones de la tasa de cambio promedio para cada grupo de pacientes.
-
-- Con estos resultados ¿qué recomendaciones darías para el tratamiento de pacientes con micosis avanzada en la uña? 
+## ¿La longitud media de la parte no afectada por el hongo antes de comenzar el tratamiento está asociado con el sexo del paciente y el hecho que concurra al gimnasio, club o pileta?
 
 $H_0) \beta_{01}=\beta_{02}=\beta_{03}=0$ 
 
@@ -476,21 +493,30 @@ anova(m1.exp2,L=l1)
 m1.exp2.1 <- update(m1.exp2, fixed. = long ~ 1 + mes + tto:mes + sexo:mes + club:mes+ sexo:club:mes + sexo:tto:mes + tto:club:mes + tto:sexo:club:mes)
 anova(m1.exp2,m1.exp2.1)
 ```
-Rechazo $H_0$ la long de la uña antes de comenzar el estudio depende del sexo y del club.
+
+Rechazo $H_0$ la longitud de la uña antes de comenzar el estudio depende del sexo y del club.
 
 ¿Depende de las dos cosas? 
+
 ```{r}
+m1.exp2.1.1 <- update(m1.exp2, fixed. = long ~ 1 + sexo + club + mes + tto:mes + sexo:mes + club:mes+ sexo:club:mes + sexo:tto:mes + tto:club:mes + tto:sexo:club:mes)
+anova(m1.exp2,m1.exp2.1.1)
+
 m1.exp2.1.2 <- update(m1.exp2, fixed. = long ~ 1 + sexo + mes + tto:mes + sexo:mes + club:mes+ sexo:club:mes + sexo:tto:mes + tto:club:mes + tto:sexo:club:mes)
 anova(m1.exp2,m1.exp2.1.2)
+
 m1.exp2.1.3 <- update(m1.exp2, fixed. = long ~ 1 + club + mes + tto:mes + sexo:mes + club:mes+ sexo:club:mes + sexo:tto:mes + tto:club:mes + tto:sexo:club:mes)
 anova(m1.exp2,m1.exp2.1.3)
-
 ```
-Rechazo la hipotesis de que el sexo no influye en la respuesta. Por lo tanto La longitud media de la parte no afectada por el hongo antes de comenzar el tratamiento está asociado con el sexo del paciente
 
-No rechazo para el club, lo que significa La longitud media de la parte no afectada por el hongo antes de comenzar el tratamiento NO está asociado con concurrir a clubes o piletas. 
+Rechazo la hipotesis de que el sexo no influye en la respuesta. Por lo tanto la longitud media de la parte no afectada por el hongo antes de comenzar el tratamiento está asociado con el sexo del paciente
+
+No rechazo para el club o para la interacción entre sexo y club, lo que significa la longitud media de la parte no afectada por el hongo antes de comenzar el tratamiento NO está asociado con concurrir a clubes o piletas. 
+
+## ¿La tasa de cambio típica de la longitud media de uña no afectada difiere entre ambos tratamientos?
 
 $H_0)\beta_{11}=\beta_{15}=\beta_{16}=\beta_{17}=0$
+
 ```{r}
 l2 <- matrix(numeric(48),ncol=length(betas))
 l2[1,6] <- 1
@@ -501,48 +527,65 @@ m1.exp2.2 <- update(m1.exp2, fixed. = long ~ 1 + sexo + club + sexo:club + mes +
 anova(m1.exp2,L=l2)
 anova(m1.exp2,m1.exp2.2)
 ```
-Rechazo $H_0$ La tasa de cambio típica de la longitud media de uña no afectada difiere entre ambos tratamientos
+
+Rechazo $H_0$. La tasa de cambio típica de la longitud media de uña no afectada difiere entre ambos tratamientos
+
+## ¿La tasa de cambio de la longitud media de uña no afectada depende del sexo del paciente o del hecho que concurra al gimnasio, club o pileta?
 
 $H_0)\beta_{12}=\beta_{13}=\beta_{14}=\beta_{15}=\beta_{16}=\beta_{17}=0$
+
 ```{r}
+l3 <- matrix(numeric(72),ncol=length(betas)) #CLUB . SEXO
 l3.1 <- matrix(numeric(48),ncol=length(betas)) #SEXO
 l3.2 <- matrix(numeric(48),ncol=length(betas)) #CLUB
+
+l3[1,7] <- 1
+l3[2,8] <- 1
+l3[3,9] <- 1
+l3[4,10] <- 1
+l3[5,11] <- 1
+l3[6,12] <- 1
 
 l3.1[1,7] <- 1
 l3.1[2,9] <- 1
 l3.1[3,10] <- 1
 l3.1[4,12] <- 1
+
 l3.2[1,8] <- 1
 l3.2[2,9] <- 1
 l3.2[3,11] <- 1
 l3.2[4,12] <- 1
-m1.exp2.3.1 <- update(m1.exp2, fixed. = long ~ 1 + sexo + club + mes + tto:mes + club:mes + tto:club:mes)
-m1.exp2.3.2 <- update(m1.exp2, fixed. = long ~ 1 + sexo + club + mes + tto:mes + sexo:mes + sexo:tto:mes)
 
-
-anova(m1.exp2,m1.exp2.3.1)
-anova(m1.exp2,m1.exp2.3.2)
-anova(m1.exp2,L=l3.1)
-anova(m1.exp2,L=l3.2)
-
+anova(m1.exp2, L=l3)
+anova(m1.exp2, L=l3.1) # SEXO
+anova(m1.exp2, L=l3.2) # CLUB
 ```
-No rechazo para sexo => La tasa de cambio de la longitud media de uña no afectada NO depende del sexo del paciente
+Rechazo la hipotesis nula de que la tasa de cambio NO depende del sexo del paciente o del hecho que concurra al gimnasio, club o pileta.
 
-Rechazo para club => La tasa de cambio de la longitud media de uña no afectada depende del hecho que concurra al gimnasio, club o pileta
+No rechazo para sexo. La tasa de cambio NO depende del sexo del paciente
 
-Obtener estimaciones de la tasa de cambio promedio para cada grupo de pacientes
+Rechazo para club. La tasa de cambio depende del hecho que concurra al gimnasio, club o pileta
+
+## Obtener estimaciones de la tasa de cambio promedio para cada grupo de pacientes.
 
 ```{r}
 betas
 ```
+
 Ordenada:
-sexo Masculino
-Club (da igual ya que no es significativo)
+
+* Sexo Masculino
+
+* Club (da igual ya que no es significativo)
 
 Pendiente:
-Tratamiento: Itraconazol
-Club (No)
-Sexo (da igual ya que no es significativo)
 
-- Con estos resultados ¿qué recomendaciones darías para el tratamiento de pacientes con micosis avanzada en la uña? 
-Recomendamos utilizar Itraconazol y que en lo posible no concurra a clubes y/o piletas.
+* Tratamiento: Itraconazol
+
+* Club (No)
+
+* Sexo (da igual ya que no es significativo)
+
+# Conclusion
+
+Con estos resultados recomendariamos a los pacientes con micosis avanzada en la uña utilizar el tratamineto Itraconazol y no concurrir a clubes y/o piletas.
