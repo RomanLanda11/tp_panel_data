@@ -73,8 +73,8 @@ colnames(tabla_desvios) <- c("Tratamiento","Mes 0","Mes 1","Mes 2","Mes 3","Mes 
 tabla_desvios %>%
   kbl(caption = "Evolución de los desvíos estándar por tratamiento y mes") %>%
   kable_styling(full_width = F, bootstrap_options = c("striped", "hover")) %>% 
-  row_spec(0, background = "#d8d2c4", color = "#3d3934") %>% 
-  row_spec(1:2, background = "#eee9dd", color = "#3d3934")
+  row_spec(0, background = "#a2c0d9", color = "#3d3934") %>% 
+  row_spec(1:2, background = "#d1e2f0", color = "#3d3934")
 ```
 
 ## Perfiles individuales
